@@ -41,6 +41,12 @@ func main(){
 	Args := os.Args
 
 
+	if  len(Args) <= 1 {
+		fmt.Println("Missing Args, please type tiv help if you need to see usage")
+		os.Exit(1)
+
+	}
+
 	if Args[1]== "help"{
 		fmt.Println(`Usage: tiv <image_path> <scale_y> <scale_x>
 
