@@ -1,9 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"image"
-	"image/color"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
@@ -21,20 +21,32 @@ func loadImage(filePath string) (image.Image, error) {
 	return image, err
 }
 
-func grayScale(c color.Color) int {
-	r, g, b, _ := c.RGBA()
-	return int((0.299 * float64(r)) + (0.587 * float64(g)) + (0.114 * float64(b)))
-}
+// Luminosity weights for 16-bit channel values, scaled by 2^16
+// (0.299*65536, 0.587*65536, 0.114*65536).
+const (
+	wR = 19595
+	wG = 38470
+	wB = 7471
+)
 
+// avgPixel returns the average grayscale value (0-65535) of a block of pixels.
+// The per-pixel luminosity weighting is folded into the block average, so the
+// loop only accumulates raw channels and the weighted math happens once per
+// block: avg(0.299R + 0.587G + 0.114B) == 0.299avg(R) + 0.587avg(G) + 0.114avg(B).
 func avgPixel(img image.Image, x, y, w, h int) int {
-	cnt, sum, max := 0, 0, img.Bounds().Max
+	cnt, sumR, sumG, sumB := 0, 0, 0, 0
+	max := img.Bounds().Max
 	for i := x; i < x+w && i < max.X; i++ {
 		for j := y; j < y+h && j < max.Y; j++ {
-			sum += grayScale(img.At(i, j))
+			r, g, b, _ := img.At(i, j).RGBA()
+			sumR += int(r)
+			sumG += int(g)
+			sumB += int(b)
 			cnt++
 		}
 	}
-	return sum / cnt
+	r, g, b := sumR/cnt, sumG/cnt, sumB/cnt
+	return (r*wR + g*wG + b*wB) >> 16
 }
 
 // avgPixelColor returns the average grayscale value (0-65535) of a block of
@@ -113,20 +125,23 @@ Description:
 	}
 	ramp := `$@B%8&WM#*oahkbdpqwmZO0QLCJUYXzcvunxrjft/\|()1{}[]?-_+~<>i!lI;:,"^'.`
 
+	out := bufio.NewWriter(os.Stdout)
+	defer out.Flush()
+
 	max := img.Bounds().Max
 	for y := 0; y < max.Y; y += scaleX {
 		for x := 0; x < max.X; x += scaleY {
 			if useColor {
 				c, r, g, b := avgPixelColor(img, x, y, scaleX, scaleY)
-				fmt.Printf("\x1b[38;2;%d;%d;%dm%c", r, g, b, ramp[len(ramp)*c/65536])
+				fmt.Fprintf(out, "\x1b[38;2;%d;%d;%dm%c", r, g, b, ramp[len(ramp)*c/65536])
 			} else {
 				c := avgPixel(img, x, y, scaleX, scaleY)
-				fmt.Print(string(ramp[len(ramp)*c/65536]))
+				out.WriteByte(ramp[len(ramp)*c/65536])
 			}
 		}
 		if useColor {
-			fmt.Print("\x1b[0m")
+			out.WriteString("\x1b[0m")
 		}
-		fmt.Println()
+		out.WriteByte('\n')
 	}
 }
