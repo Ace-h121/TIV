@@ -14,6 +14,7 @@ The **ASCII Image Viewer (TIV)** is a Go program that converts images into ASCII
 
 - **Supports multiple image formats**: Works with PNG, JPEG, and GIF files.
 - **Customizable resolution**: Users can specify vertical and horizontal scaling factors to adjust the ASCII art's granularity.
+- **Color mode**: An optional flag renders the ASCII art in full color using 24-bit truecolor escape codes.
 - **Lightweight and fast**: Efficient processing of images using Go's standard libraries.
 
 ---
@@ -38,7 +39,7 @@ The **ASCII Image Viewer (TIV)** is a Go program that converts images into ASCII
 ### Command Syntax
 
 ```bash
-tiv <image_path> <scale_y> <scale_x>
+tiv [flags] <image_path> <scale_y> <scale_x>
 ```
 
 ### Arguments
@@ -47,6 +48,10 @@ tiv <image_path> <scale_y> <scale_x>
 - `<scale_y>`: Vertical scale factor. Must be a positive integer.
 - `<scale_x>`: Horizontal scale factor. Must be a positive integer.
 
+### Flags
+
+- `-c`, `-color`, `--color`: Render the ASCII art in color. Each character is colored with the average color of the pixels it represents, using 24-bit truecolor escape codes (requires a terminal with truecolor support). The flag can be placed anywhere in the command.
+
 ### Example
 
 ```bash
@@ -54,6 +59,12 @@ tiv example.png 10 5
 ```
 
 This command processes `example.png` and generates ASCII art with a vertical scale of `10` and a horizontal scale of `5`.
+
+To render the same image in color:
+
+```bash
+tiv -c example.png 10 5
+```
 
 ### Help
 
@@ -71,7 +82,7 @@ tiv help
 2. **Grayscale Conversion**: Each pixel's grayscale value is calculated using weighted contributions of red, green, and blue components.
 3. **Pixel Averaging**: Pixels are grouped into blocks defined by the scaling factors, and the average grayscale value of each block is calculated.
 4. **ASCII Mapping**: The average grayscale value is mapped to an ASCII character from a predefined ramp.
-5. **Display**: The ASCII art is printed to the terminal.
+5. **Display**: The ASCII art is printed to the terminal. In color mode, each character is prefixed with an ANSI truecolor escape code matching the average color of its pixel block.
 
 ---
 
@@ -95,7 +106,7 @@ tiv help
 
 ## Improvements and Future Features
 
-- Add support for color ASCII art.
+- Add a fallback to 256-color or 8-color terminals when truecolor is not supported.
 - Include a flag for exporting the ASCII art to a text file.
 - Optimize pixel averaging for large images.
 
